@@ -12,20 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [START cloudrun_pubsub_dockerfile]
-# [START run_pubsub_dockerfile]
-
 # Use the official Python image.
 # https://hub.docker.com/_/python
 FROM python:3.11
-
-# Install Imagemagick into the container image.
-# For more on system packages review the system packages tutorial.
-# https://cloud.google.com/run/docs/tutorials/system-packages#dockerfile
-RUN set -ex; \
-  apt-get -y update; \
-  apt-get -y install imagemagick; \
-  rm -rf /var/lib/apt/lists/*
 
 # Allow statements and log messages to immediately appear in the Cloud Run logs
 ENV PYTHONUNBUFFERED True
@@ -36,6 +25,18 @@ COPY requirements.txt ./
 
 # Install production dependencies.
 RUN pip install -r requirements.txt
+
+# [START cloudrun_imageproc_dockerfile_imagemagick]
+# [START run_imageproc_dockerfile_imagemagick]
+# Install Imagemagick into the container image.
+# For more on system packages review the system packages tutorial.
+# https://cloud.google.com/run/docs/tutorials/system-packages#dockerfile
+RUN set -ex; \
+  apt-get -y update; \
+  apt-get -y install imagemagick; \
+  rm -rf /var/lib/apt/lists/*
+# [END run_imageproc_dockerfile_imagemagick]
+# [END cloudrun_imageproc_dockerfile_imagemagick]
 
 # Copy local code to the container image.
 ENV APP_HOME /app
@@ -48,6 +49,3 @@ COPY . ./
 # to be equal to the cores available.
 # Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
 CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
-
-# [END run_pubsub_dockerfile]
-# [END cloudrun_pubsub_dockerfile]

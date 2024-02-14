@@ -1,25 +1,13 @@
-# Copyright 2019 Google, LLC.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # [START cloudrun_pubsub_server]
 import base64
+import json
+import os
 
 from flask import Flask, request
 
+import image
 
 app = Flask(__name__)
-
 # [END cloudrun_pubsub_server]
 
 
@@ -41,14 +29,38 @@ def index():
 
     pubsub_message = envelope["message"]
 
-    name = "World"
+    
     if isinstance(pubsub_message, dict) and "data" in pubsub_message:
-        name = base64.b64decode(pubsub_message["data"]).decode("utf-8").strip()
+        try:
+            data = json.loads(base64.b64decode(pubsub_message['data']).decode())
 
-    print(f"Hello {name}!")
+        except Exception as e:
+           msg = (
+                "invalid Pub/Sub message: "
+                "data property is not valid base64 encoded JSON"
+           )
+           print(f"error: {e}")
+           return f"Bad Request: {msg}", 400
+        
+        # validate the message is a cloud storage event
+        if not data["name"] or not data["bucket"]:
+            msg = (
+                "invalid cloud storage notification: "
+                "expected name and bucket properties"
+            )
+            print(f"error: {e}")
+            return f"Bad Request: {msg}", 400
 
-    return ("", 204)
+        try:
+            image.blur_offensive_images(data)
+            return ("", 204)
 
+        except Exception as e:
+            print(f'error: {e}')
+            return ("", 500)
+
+    return ("", 500)
+    
 
 # [END run_pubsub_handler]
 # [END cloudrun_pubsub_handler]
